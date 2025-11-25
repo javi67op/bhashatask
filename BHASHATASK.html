@@ -1,0 +1,502 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>BhasaTask — ToDo & Expense (22 Languages)</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<style>
+  /* ----------------- Fonts & base ----------------- */
+  @font-face{font-family:InterVar; src: local('Inter'), local('InterVar');}
+  :root{
+    --bg:#f6f8f9; --card:#ffffff; --muted:#6b7280; --accent-mint:#22c1a3;
+    --accent-strong:#0f6f5f; --gdg-blue:#1a73e8; --gdg-red:#ea4335; --gdg-yellow:#fbbc05;
+    --gdg-green:#34a853; --glass: rgba(15,23,36,0.04);
+    --radius:14px;
+  }
+  *{box-sizing:border-box;font-family:InterVar,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial}
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,#fbfdfe 0%, #f0f4f6 100%);color:#071022}
+  /* ----------------- Layout ----------------- */
+  .app{max-width:1100px;margin:28px auto;padding:20px;display:grid;grid-template-columns:72px 1fr;gap:18px;align-items:start}
+  /* ----------------- Sidebar (drawer) ----------------- */
+  .drawer{background:transparent;display:flex;flex-direction:column;gap:12px;align-items:center;padding-top:18px}
+  .brand{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-mint),#3bb8d9);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;box-shadow:0 6px 18px rgba(34,33,33,0.08)}
+  .nav-btn{width:56px;height:56px;border-radius:12px;background:transparent;border:none;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--muted)}
+  .nav-btn.active{background:var(--glass);color:var(--accent-strong);box-shadow:inset 0 -2px 0 rgba(0,0,0,0.03)}
+  .small-ico{font-size:18px}
+  /* ----------------- Header + top controls ----------------- */
+  .main{padding:18px;background:transparent}
+  .topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+  .title-block{display:flex;flex-direction:column}
+  .title{font-size:20px;font-weight:700;color:#042028}
+  .subtitle{font-size:13px;color:var(--muted)}
+  .controls{display:flex;align-items:center;gap:10px}
+  .lang-select, .search{padding:8px 12px;border-radius:12px;border:1px solid #e6eef2;background:white}
+  .btn-primary{background:linear-gradient(90deg,var(--accent-mint),#3bb8d9);color:#042827;padding:9px 12px;border-radius:10px;border:none;font-weight:700;cursor:pointer}
+  .icon-gear{font-size:18px;cursor:pointer;border-radius:10px;padding:7px}
+  /* ----------------- Content area ----------------- */
+  .content{display:grid;grid-template-columns:1fr 340px;gap:18px}
+  .card{background:var(--card);border-radius:var(--radius);padding:16px;box-shadow:0 6px 18px rgba(12,18,24,0.06);border:1px solid rgba(12,18,24,0.03)}
+  .section-title{font-size:13px;color:var(--muted);margin-bottom:10px;font-weight:600}
+  .row{display:flex;gap:8px}
+  .input{width:100%;padding:10px;border-radius:10px;border:1px solid #e6eef2;background:transparent}
+  .input[type=date]{padding:8px}
+  .btn{padding:9px 12px;border-radius:10px;border:none;cursor:pointer}
+  .btn-ghost{background:transparent;border:1px solid rgba(10,10,10,0.06);color:#042827}
+  .list{list-style:none;padding:0;margin:0;max-height:320px;overflow:auto}
+  li.item{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;border:1px solid rgba(10,10,10,0.03);margin-bottom:8px;background:linear-gradient(180deg,rgba(255,255,255,0.6),rgba(250,250,250,1))}
+  .item .left{display:flex;align-items:center;gap:10px}
+  .item .title{font-weight:600}
+  .chip{padding:6px 10px;border-radius:999px;background:#f1faf8;color:var(--accent-strong);font-weight:700;border:1px solid rgba(34,33,33,0.04)}
+  .muted{color:var(--muted);font-size:13px}
+  .totals{font-size:20px;font-weight:800;color:#042827}
+  /* ----------------- Footer small ----------------- */
+  footer.app-footer{margin-top:14px;text-align:center;color:var(--muted);font-size:13px}
+  /* ----------------- Settings modal ----------------- */
+  .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:rgba(6,8,12,0.4);z-index:50}
+  .modal.active{display:flex}
+  .modal-card{width:min(720px,95%);background:var(--card);padding:18px;border-radius:12px;box-shadow:0 18px 60px rgba(6,8,12,0.22)}
+  .row-center{display:flex;align-items:center;gap:10px}
+  /* ----------------- responsive ----------------- */
+  @media(max-width:920px){
+    .app{grid-template-columns:56px 1fr;padding:12px}
+    .content{grid-template-columns:1fr}
+    .drawer{position:fixed;left:10px;top:18px}
+  }
+  @media(max-width:520px){
+    .brand{width:48px;height:48px}
+    .nav-btn{width:48px;height:48px}
+    .content{grid-template-columns:1fr}
+    .app{gap:10px}
+  }
+</style>
+</head>
+<body>
+  <div class="app" id="appRoot">
+    <!-- Sidebar (drawer) -->
+    <aside class="drawer" aria-label="Navigation">
+      <div class="brand" title="BhasaTask">BT</div>
+
+      <button class="nav-btn active" id="navTasks" title="Tasks" aria-label="Tasks">📋</button>
+      <button class="nav-btn" id="navExpenses" title="Expenses" aria-label="Expenses">💸</button>
+      <button class="nav-btn" id="navSettings" title="Settings" aria-label="Settings"⚙️</button>
+
+      <div style="flex:1"></div>
+      <div class="muted" style="font-size:12px;writing-mode:vertical-rl;transform:rotate(180deg);opacity:0.6">BhasaTask</div>
+    </aside>
+
+    <!-- Main -->
+    <main class="main" role="main">
+      <div class="topbar">
+        <div class="title-block">
+          <div class="title" id="appTitle">BhasaTask</div>
+          <div class="subtitle muted" id="appDesc">Multilingual To-Do & Expense • Offline • No billing</div>
+        </div>
+
+        <div class="controls">
+          <select id="langSelect" class="lang-select" title="Choose language"></select>
+          <input id="searchInput" class="search input" placeholder="Search tasks / expenses..." />
+          <button class="btn-primary btn" id="exportAll">Export</button>
+          <div class="icon-gear" id="openSettings" title="Open settings">⚙️</div>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="content" id="mainContent">
+        <!-- Left column -->
+        <section>
+          <!-- Tasks card -->
+          <div class="card" style="margin-bottom:14px">
+            <div class="section-title" id="todoTitle">Tasks</div>
+            <div class="row" style="margin-bottom:10px">
+              <input id="taskInput" class="input" placeholder="Add a new task" aria-label="New task" />
+              <button id="addTaskBtn" class="btn btn-primary">Add Task</button>
+            </div>
+            <ul id="todoList" class="list" aria-live="polite"></ul>
+          </div>
+
+          <!-- Expenses card -->
+          <div class="card">
+            <div class="section-title" id="expTitle">Expenses</div>
+            <div class="row" style="margin-bottom:8px">
+              <input id="expDesc" class="input" placeholder="Description" />
+              <input id="expAmount" class="input" placeholder="Amount" type="number" />
+              <input id="expDate" class="input" type="date" />
+            </div>
+            <div class="row" style="margin-bottom:12px">
+              <input id="expCat" class="input" placeholder="Category (eg Food/Travel)" />
+              <button id="addExpBtn" class="btn btn-primary">Add Expense</button>
+            </div>
+
+            <div class="section-title" id="listExpTitle">Expense List</div>
+            <ul id="expList" class="list"></ul>
+          </div>
+        </section>
+
+        <!-- Right column -->
+        <aside>
+          <div class="card">
+            <div class="section-title" id="summaryTitle">Summary</div>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <div>
+                <div class="muted">Total Expenses</div>
+                <div class="totals" id="totalExpenses">₹0.00</div>
+              </div>
+
+              <div class="section-title" id="quickTitle">Quick Actions</div>
+              <div style="display:flex;flex-direction:column;gap:8px">
+                <button id="clearTasks" class="btn btn-ghost">Clear All Tasks</button>
+                <button id="clearExpenses" class="btn btn-ghost">Clear All Expenses</button>
+                <button id="exportBtn" class="btn btn-primary">Export Data</button>
+                <button id="importBtn" class="btn btn-ghost">Import Data</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:12px">
+            <div class="section-title" id="aboutTitle">About / Notes</div>
+            <div class="muted" id="aboutText">This app stores data locally in your browser. Use the language selector for 22 Indian languages.</div>
+          </div>
+        </aside>
+      </div>
+
+      <footer class="app-footer">Made for India AI Impact • BhasaTask • Offline • No billing</footer>
+    </main>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="modalSettings" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div>
+          <div style="font-weight:800;font-size:18px">Settings</div>
+          <div class="muted" style="font-size:13px">App & language preferences</div>
+        </div>
+        <button id="closeModal" class="btn btn-ghost">Close</button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="muted small">App name</label>
+          <input id="appNameInput" class="input" value="BhasaTask" />
+        </div>
+        <div>
+          <label class="muted small">Theme</label>
+          <select id="themeSelect" class="input">
+            <option value="mixed">Mixed (Mint + GDG)</option>
+            <option value="mint">Mint (Green)</option>
+            <option value="gdg">GDG Colors</option>
+            <option value="minimal">Minimal</option>
+          </select>
+        </div>
+
+        <div style="grid-column:1/-1">
+          <label class="muted small">About / Notes (visible on right)</label>
+          <textarea id="aboutInput" rows="3" class="input">This app stores data locally in your browser. Use the language selector for 22 Indian languages.</textarea>
+        </div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button id="saveSettings" class="btn btn-primary">Save</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+/* =======================
+   BhasaTask — Single File
+   22-languages, offline, localStorage
+   ======================= */
+
+/* -------- translations (22 languages - minimal UI keys) --------
+ Keys: title, subtitle, todoTitle, addTask, taskPlaceholder, expTitle,
+ expDescPH, expAmountPH, expDatePH, expCatPH, addExp, listExpTitle,
+ summaryTitle, totalLabel, quickTitle, clearTasks, clearExpenses,
+ exportBtn, importBtn, aboutTitle, aboutText, footerText, langName
+----------------------------------------------------------------- */
+const translations = {
+  "en":{langName:"English", title:"BhasaTask", subtitle:"Multilingual To-Do & Expense — Offline", todoTitle:"Tasks", addTask:"Add Task", taskPlaceholder:"Add a new task", expTitle:"Expenses", expDescPH:"Description", expAmountPH:"Amount", expDatePH:"Date", expCatPH:"Category (eg Food/Travel)", addExp:"Add Expense", listExpTitle:"Expense List", summaryTitle:"Summary", totalLabel:"Total Expenses", quickTitle:"Quick Actions", clearTasks:"Clear All Tasks", clearExpenses:"Clear All Expenses", exportBtn:"Export (JSON)", importBtn:"Import (paste JSON)", aboutTitle:"About / Notes", aboutText:"This app works offline in browser. Switch language and everything will change.", footerText:"Made for India AI Impact • Offline • No billing"},
+  "hi":{langName:"हिन्दी", title:"भाषा टास्क", subtitle:"बहुभाषी टू-डू और खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जोड़ें", taskPlaceholder:"नया टास्क जोड़ें", expTitle:"खर्चे", expDescPH:"विवरण", expAmountPH:"राशि", expDatePH:"तारीख", expCatPH:"वर्ग (उदा: खाना/यात्रा)", addExp:"खर्च जोड़ें", listExpTitle:"खर्च सूची", summaryTitle:"सारांश", totalLabel:"कुल खर्च", quickTitle:"त्वरित क्रियाएँ", clearTasks:"सभी टास्क हटाएँ", clearExpenses:"सभी खर्च हटाएँ", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट करें)", aboutTitle:"बारे में", aboutText:"यह ऐप ब्राउज़र में ऑफ़लाइन काम करता है।", footerText:"India AI Impact • ऑफ़लाइन • कोई बिलिंग नहीं"},
+  "bn":{langName:"বাংলা", title:"BhasaTask", subtitle:"বহুভাষিক টু-ডু ও খরচ — অফলাইন", todoTitle:"টাস্ক", addTask:"টাস্ক যোগ করুন", taskPlaceholder:"নতুন টাস্ক যোগ করুন", expTitle:"খরচ", expDescPH:"বিবরণ", expAmountPH:"টাকা", expDatePH:"তারিখ", expCatPH:"বিভাগ (যেমন: খাদ্য/ভ্রমণ)", addExp:"খরচ যোগ করুন", listExpTitle:"খরচ তালিকা", summaryTitle:"সারাংশ", totalLabel:"মোট খরচ", quickTitle:"দ্রুত কার্য", clearTasks:"সব টাস্ক মুছুন", clearExpenses:"সব খরচ মুছুন", exportBtn:"রপ্তানি (JSON)", importBtn:"ইম্পোর্ট (JSON পেস্ট করুন)", aboutTitle:"সম্বন্ধে", aboutText:"এই অ্যাপ ব্রাউজারে অফলাইন কাজ করে।", footerText:"India AI Impact • অফলাইন • কোন বিলিং নেই"},
+  "te":{langName:"తెలుగు", title:"BhasaTask", subtitle:"బహుభాషా టూ-డూ & ఖర్చు — ఆఫ్‌లైన్", todoTitle:"టాస్క్‌లు", addTask:"టాస్క్ జోడించండి", taskPlaceholder:"కొత్త టాస్క్ జోడించండి", expTitle:"ఖర్చులు", expDescPH:"వివరణ", expAmountPH:"రూపాయిలు", expDatePH:"తేదీ", expCatPH:"వర్గం (ఉదా: ఆహారం/యాత్ర)", addExp:"ఖర్చు జోడించండి", listExpTitle:"ఖర్చుల జాబితా", summaryTitle:"సారాంశం", totalLabel:"మొత్తం ఖర్చులు", quickTitle:"త్వరిత చర్యలు", clearTasks:"అన్ని టాస్క్‌లు తొలగించు", clearExpenses:"అన్ని ఖర్చులు తొలగించు", exportBtn:"ఎగుమతి (JSON)", importBtn:"ఇంపోర్ట్ (JSON పేస్ట్ చేయండి)", aboutTitle:"గురించి", aboutText:"ఈ యాప్ బ్రౌజర్లో ఆఫ్‌లైన్ గా పనిచేస్తుంది.", footerText:"India AI Impact • ఆఫ్‌లైన్ • బిల్లింగ్ లేదు"},
+  "mr":{langName:"मराठी", title:"BhasaTask", subtitle:"अनेक भाषा टू-डू व खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जोडा", taskPlaceholder:"नवीन टास्क जोडा", expTitle:"खर्च", expDescPH:"वर्णन", expAmountPH:"रक्कम", expDatePH:"तारीख", expCatPH:"वर्ग (उदा: अन्न/प्रवास)", addExp:"खर्च जोडा", listExpTitle:"खर्च यादी", summaryTitle:"सारांश", totalLabel:"एकूण खर्च", quickTitle:"त्वरीत क्रिया", clearTasks:"सर्व टास्क हटवा", clearExpenses:"सर्व खर्च हटवा", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट करा)", aboutTitle:"बद्दल", aboutText:"हे अ‍ॅप ब्राउझरमध्ये ऑफलाइन काम करते.", footerText:"India AI Impact • ऑफलाइन • बिलिंग नाही"},
+  "ta":{langName:"தமிழ்", title:"BhasaTask", subtitle:"பலந் மொழித் டு-டு மற்றும் செலவு — ஆஃப்லைன்", todoTitle:"டாஸ்க்", addTask:"டாஸ்க் சேர்க்க", taskPlaceholder:"புதிய டாஸ்க் சேர்க்க", expTitle:"செலவுகள்", expDescPH:"விளக்கம்", expAmountPH:"தொகை", expDatePH:"தேதி", expCatPH:"வகை (உதா: உணவு/பயணம்)", addExp:"செலவு சேர்க்க", listExpTitle:"செலவுப் பட்டியல்", summaryTitle:"சுருக்கம்", totalLabel:"மொத்த செலவுகள்", quickTitle:"குறுகிய செயல்கள்", clearTasks:"அனைத்து டாஸ்க் நீக்கு", clearExpenses:"அனைத்து செலவுகளை நீக்கு", exportBtn:"ஏற்றுமதி (JSON)", importBtn:"இறக்குமதி (JSON ஒட்டு)", aboutTitle:"பற்றி", aboutText:"இந்த செயலி உலாவியில் ஆஃப்லைனில் வேலை செய்கிறது.", footerText:"India AI Impact • ஆஃப்லைன் • பில்லிங் இல்லை"},
+  "gu":{langName:"ગુજરાતી", title:"BhasaTask", subtitle:"બહુભાષી ટુ-ડુ અને ખર્ચ — ઓફલાઈન", todoTitle:"ટાસ્ક", addTask:"ટાસ્ક ઉમેરો", taskPlaceholder:"નવો ટાસ્ક ઉમેરો", expTitle:"ખર્ચ", expDescPH:"વર્ણન", expAmountPH:"રકમ", expDatePH:"તારીખ", expCatPH:"શ્રેણી (ઉદા: ભોજન/પ્રવાસ)", addExp:"ખર્ચ ઉમેરો", listExpTitle:"ખર્ચ સૂચિ", summaryTitle:"સારાંશ", totalLabel:"કુલ ખર્ચ", quickTitle:"ઝડપી ક્રિયાઓ", clearTasks:"બધા ટાસ્ક કાઢી નાખો", clearExpenses:"બધા ખર્ચ કાઢી નાખો", exportBtn:"નિકાસ (JSON)", importBtn:"આયાત (JSON પેસ્ટ કરો)", aboutTitle:"વિશે", aboutText:"આ એપ બ્રાઉઝરમાં ઓફલાઈન કામ કરે છે.", footerText:"India AI Impact • ઑફલાઇન • બિલિંગ નહીં"},
+  "ur":{langName:"اردو", title:"BhasaTask", subtitle:"کثیراللغات ٹو-ڈو اور خرچ — آف لائن", todoTitle:"ٹاسک", addTask:"ٹاسک شامل کریں", taskPlaceholder:"نیا ٹاسک شامل کریں", expTitle:"اخراجات", expDescPH:"تفصیل", expAmountPH:"رقم", expDatePH:"تاریخ", expCatPH:"زمرہ (مثلاً: خوراک/سفر)", addExp:"اخراجات شامل کریں", listExpTitle:"اخراجات کی فہرست", summaryTitle:"خلاصہ", totalLabel:"کل اخراجات", quickTitle:"فوری کارروائیاں", clearTasks:"تمام ٹاسکس حذف کریں", clearExpenses:"تمام اخراجات حذف کریں", exportBtn:"برآمد (JSON)", importBtn:"درآمد (JSON پیسٹ کریں)", aboutTitle:"کے بارے میں", aboutText:"یہ ایپ براؤزر میں آف لائن کام کرتی ہے.", footerText:"India AI Impact • آف لائن • کوئی بلنگ نہیں"},
+  "kn":{langName:"ಕನ್ನಡ", title:"BhasaTask", subtitle:"ಬಹುಭಾಷಾ ಟು-ಡು & ವೆಚ್ಚ — ಆಫ್‌ಲೈನ್", todoTitle:"ಟಾಸ್ಕ್", addTask:"ಕಾರ್ಯ ಸೇರಿಸಿ", taskPlaceholder:"ಹೊಸ ಕಾರ್ಯ ಸೇರಿಸಿ", expTitle:"ವೆಚ್ಚ", expDescPH:"ವಿವರಣೆ", expAmountPH:"ರಾಶಿ", expDatePH:"ದಿನಾಂಕ", expCatPH:"ವರ್ಗ (ಉದಾ: ಆಹಾರ/ಪ್ರಯಾಣ)", addExp:"ವೆಚ್ಚ ಸೇರಿಸಿ", listExpTitle:"ವೆಚ್ಚ ಪಟ್ಟಿಗಳು", summaryTitle:"ಸಾರಾಂಶ", totalLabel:"ಒಟ್ಟು ವೆಚ್ಚ", quickTitle:"ವೇಗದ ಕಾರ್ಯಗಳು", clearTasks:"ಎಲ್ಲಾ ಕಾರ್ಯ ಅಳಿಸು", clearExpenses:"ಎಲ್ಲಾ ವೆಚ್ಚ ಅಳಿಸು", exportBtn:"ರಫ್ತು (JSON)", importBtn:"ಆಮದು (JSON ಅಂಟಿಸಿ)", aboutTitle:"ಬಗ್ಗೆ", aboutText:"ಈ ಅಪ್ಲಿಕೇಶನ್ ಬ್ರೌಸರ್‌ನಲ್ಲಿ ಆಫ್‌ಲೈನ್ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತದೆ.", footerText:"India AI Impact • ಆಫ್‌ಲೈನ್ • ಬಿಲ್ಲಿಂಗ್ ಇಲ್ಲ"},
+  "ml":{langName:"മലയാളം", title:"BhasaTask", subtitle:"ബഹുഭാഷാ ടു-ഡു & ചെലവ് — ഓഫ്‌ലൈൻ", todoTitle:"ടാസ്‌ക്", addTask:"ടാസ്‌ക് ചേർക്കുക", taskPlaceholder:"പുതിയ ടാസ്‌ക് ചേർക്കുക", expTitle:"ചെലവുകൾ", expDescPH:"വിവരണം", expAmountPH:"തുക", expDatePH:"തീയതി", expCatPH:"വിഭാഗം (ഉദാ: ഭക്ഷണം/യാത്ര)", addExp:"ചെലവ് ചേർക്കുക", listExpTitle:"ചെലവ് പട്ടിക", summaryTitle:"സംഗ്രഹം", totalLabel:"മൊത്തം ചെലവുകൾ", quickTitle:"ക്വിക്ക് പ്രവർത്തനങ്ങൾ", clearTasks:"എല്ലാ ടാസ്കുകൾ നീക്കംചെയ്യുക", clearExpenses:"എല്ലാ ചെലവുകളും നീക്കംചെയ്യുക", exportBtn:"കയറ്റുമതി (JSON)", importBtn:"ഇൻപോർട്ട് (JSON പേസ്റ്റ് ചെയ്യുക)", aboutTitle:"ബെAbout", aboutText:"ഈ ആപ്പ് ബ്രൗസറിൽ آف്ലൈൻ പ്രവർത്തിക്കുന്നു.", footerText:"India AI Impact • ஆஃப்லைன் • ബില്ലിംഗ് இல்லை"},
+  "or":{langName:"ଓଡ଼ିଆ", title:"BhasaTask", subtitle:"ବହୁଭାଷୀ ଟୁ-ଡୁ ଏବଂ ଖର୍ଚ୍ଚ — ଅଫ୍ଲାଇନ୍", todoTitle:"ଟାସ୍କ", addTask:"ଟାସ୍କ ଯୋଡନ୍ତୁ", taskPlaceholder:"ନୂତନ ଟାସ୍କ ଯୋଡନ୍ତୁ", expTitle:"ଖର୍ଚ୍ଚ", expDescPH:"ବର୍ଣ୍ଣନା", expAmountPH:"ରାଶି", expDatePH:"ତାରିଖ", expCatPH:"ଶ୍ରେଣୀ (ଉଦା: ଖାଦ୍ୟ/ଭ୍ରମଣ)", addExp:"ଖର୍ଚ୍ଚ ଯୋଡନ୍ତୁ", listExpTitle:"ଖର୍ଚ୍ଚ ତାଲିକା", summaryTitle:"ସାରାଂଶ", totalLabel:"ମୋଟ ଖର୍ଚ୍ଚ", quickTitle:"ତ୍ୱରିତ କାର୍ଯ୍ୟ", clearTasks:"ସମସ୍ତ ଟାସ୍କ ମିଛାନ୍ତୁ", clearExpenses:"ସମସ୍ତ ଖର୍ଚ୍ଚ ମିଛାନ୍ତୁ", exportBtn:"ନିର୍ୟାତ (JSON)", importBtn:"ଆମଦାନୀ (JSON ପେଷ୍ଟ କରନ୍ତୁ)", aboutTitle:"ବିଷୟ", aboutText:"ଏହି ଆପ୍ଲିକେଶନ୍ ଅଫ୍ଲାଇନ୍‌ରେ ବ୍ରାଉଜର୍‌ରେ କାମ କରେ.", footerText:"India AI Impact • ଅଫ୍ଲାଇନ୍ • ବିଲିଂ ନାହିଁ"},
+  "pa":{langName:"ਪੰਜਾਬੀ", title:"BhasaTask", subtitle:"ਬਹੁਭਾਸ਼ੀ ਟੂ-ਡੂ ਅਤੇ ਖਰਚ — ਆਫਲਾਈਨ", todoTitle:"ਟਾਸਕ", addTask:"ਟਾਸਕ ਸ਼ਾਮਿਲ ਕਰੋ", taskPlaceholder:"ਨਵਾਂ ਟਾਸਕ ਸ਼ਾਮਿਲ ਕਰੋ", expTitle:"ਖਰਚੇ", expDescPH:"ਵੇਰਵਾ", expAmountPH:"ਰਕਮ", expDatePH:"ਤਾਰੀਖ", expCatPH:"ਸ਼੍ਰੇਣੀ (ਉਦਾਹਰਣ: ਭੋਜਨ/ਯਾਤਰਾ)", addExp:"ਖਰਚ ਸ਼ਾਮਿਲ ਕਰੋ", listExpTitle:"ਖਰਚ ਸੂਚੀ", summaryTitle:"ਸਾਰ", totalLabel:"ਕੁੱਲ ਖਰਚ", quickTitle:"ਤੁਰੰਤ ਕਾਰਵਾਈ", clearTasks:"ਸਾਰੇ ਟਾਸਕ ਹਟਾਓ", clearExpenses:"ਸਾਰੇ ਖਰਚ ਹਟਾਓ", exportBtn:"ਨਿਰਯਾਤ (JSON)", importBtn:"ਆਯਾਤ (JSON ਪੇਸਟ ਕਰੋ)", aboutTitle:"ਬਾਰੇ", aboutText:"ਇਹ ਐਪ ਬਰਾਊਜ਼ਰ ਵਿੱਚ ਆਫਲਾਈਨ ਕੰਮ ਕਰਦੀ ਹੈ.", footerText:"India AI Impact • ਆਫਲਾਈਨ • ਕੋਈ ਬਿਲਿੰਗ ਨਹੀਂ"},
+  "as":{langName:"অসমীয়া", title:"BhasaTask", subtitle:"বহুভাষী টু-ডু আৰু খৰচ — অফলাইন", todoTitle:"টাস্ক", addTask:"টাস্ক যোগ কৰক", taskPlaceholder:"নতুন টাস্ক যোগ কৰক", expTitle:"খৰচ", expDescPH:"বিৱৰণ", expAmountPH:"টকা", expDatePH:"তাৰিখ", expCatPH:"বিভাগ (যেনে: খাদ্য/ভ্রমণ)", addExp:"খৰচ যোগ কৰক", listExpTitle:"খরচ তালিকা", summaryTitle:"সাৰাংশ", totalLabel:"মুঠ খরচ", quickTitle:"দ্ৰুত কাৰ্য", clearTasks:"সমস্ত টাস্ক মচি দিয়ক", clearExpenses:"সমস্ত খৰচ মচি দিয়ক", exportBtn:"ৰপ্তানি (JSON)", importBtn:"আমদানি (JSON পেষ্ট কৰক)", aboutTitle:"সম্পৰ্কে", aboutText:"এই এপ্লিকেশ্যন ব্রাউজাৰত অফলাইন কাম কৰে.", footerText:"India AI Impact • অফলাইন • কোনো বিলিং নাথাকে"},
+  "mai":{langName:"मैथिली", title:"BhasaTask", subtitle:"बहुभाषी टू-डू आ खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जोड़ू", taskPlaceholder:"नव टास्क जोड़ू", expTitle:"खर्च", expDescPH:"विवरण", expAmountPH:"रकम", expDatePH:"तिथि", expCatPH:"श्रेणी (उदा: भोजन/यात्रा)", addExp:"खर्च जोड़ू", listExpTitle:"खर्च सूची", summaryTitle:"सारांश", totalLabel:"कुल खर्च", quickTitle:"त्वरित क्रिया", clearTasks:"सभ टास्क हटाउ", clearExpenses:"सभ खर्च हटाउ", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट करू)", aboutTitle:"बारे", aboutText:"ई ऐप ब्राउजर में ऑफलाइन काम करैत अछि.", footerText:"India AI Impact • ऑफलाइन • बिलिंग नै"},
+  "ne":{langName:"नेपाली", title:"BhasaTask", subtitle:"बहुभाषिक टू-डू र खर्च — अफलाइन", todoTitle:"टास्क", addTask:"टास्क थप्नुहोस्", taskPlaceholder:"नयाँ टास्क थप्नुहोस्", expTitle:"खर्च", expDescPH:"विवरण", expAmountPH:"रकम", expDatePH:"मिति", expCatPH:"श्रेणी (उदा: खाना/यात्रा)", addExp:"खर्च थप्नुहोस्", listExpTitle:"खर्च सूची", summaryTitle:"सारांश", totalLabel:"कुल खर्च", quickTitle:"छिटो कार्यहरू", clearTasks:"सबै टास्क मेटाउ", clearExpenses:"सबै खर्च मेटाउ", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट गर्नुहोस्)", aboutTitle:"बारेमा", aboutText:"यो एप ब्राउजरमा अफलाइन काम गर्छ.", footerText:"India AI Impact • अफलाइन • बिलिङ छैन"},
+  "gom":{langName:"कोंकणी", title:"BhasaTask", subtitle:"बहु भाषेन टु-डु आ खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जमा", taskPlaceholder:"नवो टास्क जोडा", expTitle:"खर्च", expDescPH:"वर्णन", expAmountPH:"रक्कम", expDatePH:"तारीख", expCatPH:"वर्ग (उदा: फुड/ट्रॅव्हल)", addExp:"खर्च जोडा", listExpTitle:"खर्च यादी", summaryTitle:"सारांश", totalLabel:"एकूण खर्च", quickTitle:"त्वरीत क्रिया", clearTasks:"सगळे टास्क हटवा", clearExpenses:"सगळे खर्च हटवा", exportBtn:"एक्सपोर्ट (JSON)", importBtn:"इम्पोर्ट (JSON पेस्ट करा)", aboutTitle:"बरे", aboutText:"हे ऍप ब्राउझरांत ऑफलाइन काम करतं.", footerText:"India AI Impact • ऑफलाइन • बिलिंग न्हय"},
+  "sd":{langName:"سنڌي", title:"BhasaTask", subtitle:"ٻَه ٻولين وارو ٽو-ڊو ۽ خرچ — آف لائن", todoTitle:"ٽاسڪ", addTask:"ٽاسڪ شامل ڪريو", taskPlaceholder:"نئون ٽاسڪ شامل ڪريو", expTitle:"خرچ", expDescPH:"وضاحت", expAmountPH:"رقم", expDatePH:"تاريخ", expCatPH:"زمرہ (مثلاً: خوراڪ/سفر)", addExp:"خرچ شامل ڪريو", listExpTitle:"خرچ فهرست", summaryTitle:"خلاصو", totalLabel:"ڪل خرچ", quickTitle:"تيز عمل", clearTasks:"سڀ ٽاسڪ حذف ڪريو", clearExpenses:"سڀ خرچ حذف ڪريو", exportBtn:"برآمد (JSON)", importBtn:"درآمد (JSON پيسٽ ڪريو)", aboutTitle:"بابت", aboutText:"هي ايپ برائوزر ۾ آف لائن ڪم ڪري ٿو.", footerText:"India AI Impact • آف لائن • ڪو به بلنگ نه"},
+  "sa":{langName:"संस्कृत", title:"BhasaTask", subtitle:"बहुभाषिकः कर्तव्य-सूची च व्ययः — ऑफलाइन", todoTitle:"कर्तव्याः", addTask:"कार्यं योजयतु", taskPlaceholder:"नूतनं कार्यं योजयतु", expTitle:"व्ययाः", expDescPH:"विवरणम्", expAmountPH:"राशिः", expDatePH:"तिथिः", expCatPH:"वर्गः (उदाहः: अन्न/यात्रा)", addExp:"व्ययं योजयतु", listExpTitle:"व्यय सूची", summaryTitle:"सारांशः", totalLabel:"कुल् व्यय", quickTitle:"त्वरित क्रियाः", clearTasks:"सर्वे कर्तव्याः मेटयतु", clearExpenses:"सर्वे व्ययाः मेटयतु", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट् कुर्यात्)", aboutTitle:"विषये", aboutText:"एषः अनुप्रयोगः ब्राउज़रमध्ये ऑफलाइन कार्यं करोति.", footerText:"India AI Impact • ऑफलाइन • बिलिङ् नास्ति"},
+  "brx":{langName:"बोड़ो", title:"BhasaTask", subtitle:"बहुभाषी टू-डु आ खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जोड़ो", taskPlaceholder:"नए टास्क जोड़ो", expTitle:"खर्च", expDescPH:"विवरण", expAmountPH:"राशि", expDatePH:"तारीख", expCatPH:"वर्ग (उदा: खाना/यात्रा)", addExp:"खर्च जोड़ो", listExpTitle:"खर्च सूची", summaryTitle:"सारांश", totalLabel:"कुल खर्च", quickTitle:"त्वरित क्रिया", clearTasks:"सभी टास्क हटाओ", clearExpenses:"सभी खर्च हटाओ", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट करो)", aboutTitle:"बारे", aboutText:"यह ऐप ब्राउज़र में ऑफलाइन चलता है.", footerText:"India AI Impact • ऑफलाइन • बिलिंग नहीं"},
+  "doi":{langName:"डोगरी", title:"BhasaTask", subtitle:"बहु-भाषी टू-डू ते खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जोड़ो", taskPlaceholder:"नवां टास्क जोड़ो", expTitle:"खर्चे", expDescPH:"वर्णन", expAmountPH:"राशि", expDatePH:"तारीख", expCatPH:"श्रेणी (उदा: खाना/यात्रा)", addExp:"खर्च जोड़ो", listExpTitle:"खर्च सूची", summaryTitle:"सार", totalLabel:"कुल खर्च", quickTitle:"त्वरित क्रियावां", clearTasks:"सारे टास्क हटाओ", clearExpenses:"सारे खर्च हटाओ", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट करो)", aboutTitle:"बारे", aboutText:"इह ऐप ब्राउज़र विच ऑफलाइन चलदी ऐ.", footerText:"India AI Impact • ऑफलाइन • कोई बिलिंग नहीं"},
+  "sat":{langName:"सँताली", title:"BhasaTask", subtitle:"बहुभाषी टु-डु आ खर्च — ऑफलाइन", todoTitle:"टास्क", addTask:"टास्क जोडो", taskPlaceholder:"नवाँ टास्क जोडो", expTitle:"खर्च", expDescPH:"वर्णन", expAmountPH:"रकम", expDatePH:"तिथि", expCatPH:"श्रेणी (उदा: खाना/यात्रा)", addExp:"खर्च जोडो", listExpTitle:"खर्च सूची", summaryTitle:"सारांश", totalLabel:"कुल खर्च", quickTitle:"त्वरित एक्शन", clearTasks:"सब टास्क हटाओ", clearExpenses:"सब खर्च हटाओ", exportBtn:"निर्यात (JSON)", importBtn:"आयात (JSON पेस्ट करो)", aboutTitle:"बारे", aboutText:"ई ऐप ब्राउज़र में ऑफलाइन चलता है.", footerText:"India AI Impact • ऑफलाइन • बिलिंग नहीं"},
+  "ks":{langName:"كشميري", title:"BhasaTask", subtitle:"متعدد زبانوں ٹو-ڈو اور خرچ — آف لائن", todoTitle:"ٹاسک", addTask:"ٹاسک شامل کریں", taskPlaceholder:"نیا ٹاسک شامل کریں", expTitle:"خرچ", expDescPH:"وضاحت", expAmountPH:"رقم", expDatePH:"تاریخ", expCatPH:"زمرہ (مثلاً: خوراک/سفر)", addExp:"خرچ شامل کریں", listExpTitle:"خرچ فہرست", summaryTitle:"خلاصہ", totalLabel:"کل خرچ", quickTitle:"فوری کارروائیاں", clearTasks:"تمام ٹاسک حذف کریں", clearExpenses:"تمام خرچ حذف کریں", exportBtn:"برآمد (JSON)", importBtn:"درآمد (JSON پیسٹ کریں)", aboutTitle:"بارے", aboutText:"یہ ایپ براؤزر میں آف لائن کام کرتی ہے.", footerText:"India AI Impact • آف لائن • کوئی بلنگ نہیں"},
+  "mni":{langName:"মেইতেই", title:"BhasaTask", subtitle:"বহুভাষী টু-ডু অমদৌ খরচ — অফলাইন", todoTitle:"টাস্ক", addTask:"টাস্ক জোডাবা", taskPlaceholder:"নওয়া টাস্ক জোডাবা", expTitle:"খরচ", expDescPH:"বিবরণ", expAmountPH:"টাকা", expDatePH:"তারিখ", expCatPH:"ক্যাটাগরি (উদা: খাদ্য/ভ্রমণ)", addExp:"খরচ জোডাবা", listExpTitle:"খরচ লিস্ট", summaryTitle:"সারাংশ", totalLabel:"মোট খরচ", quickTitle:"কুইক অ্যাকশন", clearTasks:"সমস্ত টাস্ক পরিষ্কার", clearExpenses:"সমস্ত খরচ পরিষ্কার", exportBtn:"এক্সপোর্ট (JSON)", importBtn:"ইম্পোর্ট (JSON পেস্ট করু)", aboutTitle:"বিষয়ে", aboutText:"এই অ্যাপ ব্রাউজারে অফলাইন কাজ করে.", footerText:"India AI Impact • অফলাইন • কোনো বিলিং নেই"}
+};
+
+/* ---------------------- App State ---------------------- */
+const stateKey = 'bhasatask_v1';
+let state = {
+  lang: localStorage.getItem('bhasa_lang') || 'en',
+  todos: JSON.parse(localStorage.getItem('bhasa_todos') || '[]'),
+  expenses: JSON.parse(localStorage.getItem('bhasa_expenses') || '[]'),
+  settings: JSON.parse(localStorage.getItem('bhasa_settings') || '{"theme":"mixed","appName":"BhasaTask","about":"This app stores data locally in your browser."}')
+};
+
+/* ------------- DOM refs ------------- */
+const refs = {
+  langSelect: document.getElementById('langSelect'),
+  appTitle: document.getElementById('appTitle'),
+  appDesc: document.getElementById('appDesc'),
+  taskInput: document.getElementById('taskInput'),
+  addTaskBtn: document.getElementById('addTaskBtn'),
+  todoList: document.getElementById('todoList'),
+  expDesc: document.getElementById('expDesc'),
+  expAmount: document.getElementById('expAmount'),
+  expDate: document.getElementById('expDate'),
+  expCat: document.getElementById('expCat'),
+  addExpBtn: document.getElementById('addExpBtn'),
+  expList: document.getElementById('expList'),
+  totalExpenses: document.getElementById('totalExpenses'),
+  clearTasks: document.getElementById('clearTasks'),
+  clearExpenses: document.getElementById('clearExpenses'),
+  exportBtn: document.getElementById('exportBtn'),
+  importBtn: document.getElementById('importBtn'),
+  exportAll: document.getElementById('exportAll'),
+  searchInput: document.getElementById('searchInput'),
+  modalSettings: document.getElementById('modalSettings'),
+  openSettings: document.getElementById('openSettings'),
+  closeModal: document.getElementById('closeModal'),
+  saveSettings: document.getElementById('saveSettings'),
+  appNameInput: document.getElementById('appNameInput'),
+  themeSelect: document.getElementById('themeSelect'),
+  aboutInput: document.getElementById('aboutInput'),
+  aboutText: document.getElementById('aboutText'),
+  navTasks: document.getElementById('navTasks'),
+  navExpenses: document.getElementById('navExpenses'),
+  navSettings: document.getElementById('navSettings'),
+  navButtons: document.querySelectorAll('.nav-btn'),
+  listExpTitle: document.getElementById('listExpTitle'),
+  todoTitle: document.getElementById('todoTitle'),
+  expTitle: document.getElementById('expTitle'),
+  summaryTitle: document.getElementById('summaryTitle'),
+  quickTitle: document.getElementById('quickTitle'),
+  appFooter: document.querySelector('.app-footer'),
+};
+
+/* ------------- Persistence ------------- */
+function saveAll(){
+  localStorage.setItem('bhasa_lang', state.lang);
+  localStorage.setItem('bhasa_todos', JSON.stringify(state.todos));
+  localStorage.setItem('bhasa_expenses', JSON.stringify(state.expenses));
+  localStorage.setItem('bhasa_settings', JSON.stringify(state.settings));
+}
+
+/* ------------- Language / UI ------------- */
+function populateLangSelect(){
+  refs.langSelect.innerHTML = '';
+  Object.keys(translations).forEach(code=>{
+    const opt = document.createElement('option');
+    opt.value = code;
+    opt.textContent = translations[code].langName + ` (${code})`;
+    refs.langSelect.appendChild(opt);
+  });
+  refs.langSelect.value = state.lang;
+}
+function applyTranslations(){
+  const t = translations[state.lang] || translations.en;
+  refs.appTitle.textContent = state.settings.appName || t.title;
+  refs.appDesc.textContent = t.subtitle;
+  refs.todoTitle.textContent = t.todoTitle;
+  refs.addTaskBtn.textContent = t.addTask;
+  refs.taskInput.placeholder = t.taskPlaceholder;
+  refs.expTitle.textContent = t.expTitle;
+  refs.expDesc.placeholder = t.expDescPH;
+  refs.expAmount.placeholder = t.expAmountPH;
+  refs.expDate.placeholder = t.expDatePH;
+  refs.expCat.placeholder = t.expCatPH;
+  refs.addExpBtn.textContent = t.addExp;
+  refs.listExpTitle.textContent = t.listExpTitle;
+  refs.summaryTitle.textContent = t.summaryTitle;
+  refs.quickTitle.textContent = t.quickTitle;
+  refs.clearTasks.textContent = t.clearTasks;
+  refs.clearExpenses.textContent = t.clearExpenses;
+  refs.exportBtn.textContent = t.exportBtn;
+  refs.importBtn.textContent = t.importBtn;
+  refs.exportAll.textContent = t.exportBtn;
+  refs.aboutText.textContent = state.settings.about || t.aboutText;
+  refs.appFooter.textContent = t.footerText;
+}
+
+/* ------------- Render lists ------------- */
+function renderTodos(filter=''){
+  refs.todoList.innerHTML = '';
+  const todos = state.todos.filter(t => t.text.toLowerCase().includes(filter.toLowerCase()));
+  if(!todos.length){
+    const li = document.createElement('li'); li.className='muted'; li.textContent = translations[state.lang].taskPlaceholder || 'No tasks'; refs.todoList.appendChild(li); return;
+  }
+  todos.forEach((t, idx)=>{
+    const li = document.createElement('li'); li.className='item';
+    const left = document.createElement('div'); left.className='left';
+    const chk = document.createElement('input'); chk.type='checkbox'; chk.checked = t.done; chk.onchange = ()=>{ state.todos[idx].done = chk.checked; saveAll(); renderTodos(refs.searchInput.value); };
+    const txt = document.createElement('div'); txt.className='title'; txt.textContent = t.text;
+    if(t.done) txt.style.textDecoration='line-through';
+    left.appendChild(chk); left.appendChild(txt);
+    const right = document.createElement('div'); right.style.display='flex'; right.style.alignItems='center'; right.style.gap='8px';
+    const time = document.createElement('div'); time.className='muted'; time.style.fontSize='12px'; time.textContent = new Date(t.created).toLocaleString();
+    const del = document.createElement('button'); del.className='btn btn-ghost'; del.textContent='Delete'; del.onclick = ()=>{ if(confirm('Delete task?')){ state.todos.splice(idx,1); saveAll(); renderTodos(refs.searchInput.value); } };
+    right.appendChild(time); right.appendChild(del);
+    li.appendChild(left); li.appendChild(right);
+    refs.todoList.appendChild(li);
+  });
+}
+
+function renderExpenses(filter=''){
+  refs.expList.innerHTML = '';
+  const exps = state.expenses.filter(e => {
+    const q = filter.toLowerCase();
+    return (!q) || ( (e.desc||'').toLowerCase().includes(q) || (e.cat||'').toLowerCase().includes(q) || String(e.amount).includes(q) );
+  });
+  if(!exps.length){
+    const li = document.createElement('li'); li.className='muted'; li.textContent = translations[state.lang].listExpTitle || 'No expenses'; refs.expList.appendChild(li); updateTotals(); return;
+  }
+  exps.slice().reverse().forEach((e, idxInv)=>{
+    const idx = state.expenses.length -1 - idxInv;
+    const li = document.createElement('li'); li.className='item';
+    const left = document.createElement('div'); left.style.display='flex'; left.style.flexDirection='column';
+    const desc = document.createElement('div'); desc.className='title'; desc.textContent = e.desc || '-';
+    const meta = document.createElement('div'); meta.className='muted'; meta.textContent = `${e.cat || '-'} • ${e.date || '-'}`;
+    left.appendChild(desc); left.appendChild(meta);
+    const right = document.createElement('div'); right.style.textAlign='right';
+    const amt = document.createElement('div'); amt.className='chip'; amt.textContent = `₹${Number(e.amount||0).toFixed(2)}`;
+    const del = document.createElement('button'); del.className='btn btn-ghost'; del.textContent='Delete'; del.style.marginTop='8px'; del.onclick = ()=>{ if(confirm('Delete expense?')){ state.expenses.splice(idx,1); saveAll(); renderExpenses(refs.searchInput.value); } };
+    right.appendChild(amt); right.appendChild(del);
+    li.appendChild(left); li.appendChild(right);
+    refs.expList.appendChild(li);
+  });
+  updateTotals();
+}
+
+/* ------------- Totals ------------- */
+function updateTotals(){
+  const tot = state.expenses.reduce((s,x)=>s + (Number(x.amount)||0),0);
+  refs.totalExpenses.textContent = `₹${tot.toFixed(2)}`;
+}
+
+/* ------------- Events ------------- */
+refs.addTaskBtn.addEventListener('click', ()=>{
+  const v = refs.taskInput.value.trim();
+  if(!v) return alert('Please enter a task');
+  state.todos.push({text:v,done:false,created:Date.now()});
+  refs.taskInput.value=''; saveAll(); renderTodos(refs.searchInput.value);
+});
+refs.taskInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') refs.addTaskBtn.click(); });
+
+refs.addExpBtn.addEventListener('click', ()=>{
+  const desc = refs.expDesc.value.trim(); const amount = Number(refs.expAmount.value); const date = refs.expDate.value || new Date().toISOString().slice(0,10); const cat = refs.expCat.value.trim();
+  if(!amount || amount<=0) return alert('Enter valid amount');
+  state.expenses.push({desc,amount,date,cat,created:Date.now()});
+  refs.expDesc.value=''; refs.expAmount.value=''; refs.expDate.value=''; refs.expCat.value='';
+  saveAll(); renderExpenses(refs.searchInput.value);
+});
+refs.expAmount.addEventListener('keydown', (e)=>{ if(e.key==='Enter') refs.addExpBtn.click(); });
+
+refs.clearTasks.addEventListener('click', ()=>{ if(confirm('Clear all tasks?')){ state.todos=[]; saveAll(); renderTodos(''); } });
+refs.clearExpenses.addEventListener('click', ()=>{ if(confirm('Clear all expenses?')){ state.expenses=[]; saveAll(); renderExpenses(''); } });
+
+refs.exportBtn.addEventListener('click', ()=> downloadJSON());
+refs.exportAll.addEventListener('click', ()=> downloadJSON());
+refs.importBtn.addEventListener('click', ()=> {
+  const data = prompt('Paste JSON exported from this app:');
+  if(!data) return;
+  try{
+    const obj = JSON.parse(data);
+    if(Array.isArray(obj.todos)) state.todos = obj.todos;
+    if(Array.isArray(obj.expenses)) state.expenses = obj.expenses;
+    saveAll(); renderTodos(''); renderExpenses('');
+    alert('Imported successfully');
+  }catch(err){ alert('Invalid JSON'); }
+});
+
+function downloadJSON(){
+  const payload = { todos: state.todos, expenses: state.expenses, settings: state.settings, exportedAt: new Date().toISOString() };
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'bhasatask-export.json'; a.click(); URL.revokeObjectURL(url);
+}
+
+/* Search */
+refs.searchInput.addEventListener('input', ()=> {
+  const q = refs.searchInput.value.trim();
+  renderTodos(q); renderExpenses(q);
+});
+
+/* Language selector */
+refs.langSelect.addEventListener('change', ()=> {
+  state.lang = refs.langSelect.value; saveAll(); applyTranslations();
+});
+
+/* Settings modal */
+refs.openSettings.addEventListener('click', ()=> {
+  refs.modalSettings.classList.add('active'); refs.modalSettings.setAttribute('aria-hidden','false');
+  refs.appNameInput.value = state.settings.appName || 'BhasaTask';
+  refs.themeSelect.value = state.settings.theme || 'mixed';
+  refs.aboutInput.value = state.settings.about || translations[state.lang].aboutText;
+});
+refs.closeModal.addEventListener('click', ()=> { refs.modalSettings.classList.remove('active'); refs.modalSettings.setAttribute('aria-hidden','true'); });
+refs.saveSettings.addEventListener('click', ()=> {
+  state.settings.appName = refs.appNameInput.value || 'BhasaTask';
+  state.settings.theme = refs.themeSelect.value || 'mixed';
+  state.settings.about = refs.aboutInput.value || translations[state.lang].aboutText;
+  saveAll(); applyTranslations(); refs.modalSettings.classList.remove('active'); refs.modalSettings.setAttribute('aria-hidden','true');
+});
+
+/* Nav buttons */
+refs.navTasks.addEventListener('click', ()=> { setActiveNav(refs.navTasks); showSection('tasks'); });
+refs.navExpenses.addEventListener('click', ()=> { setActiveNav(refs.navExpenses); showSection('expenses'); });
+refs.navSettings.addEventListener('click', ()=> { setActiveNav(refs.navSettings); refs.openSettings.click(); });
+
+function setActiveNav(btn){
+  refs.navButtons.forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+function showSection(name){
+  // smooth scroll to left content area (simple)
+  if(name==='tasks'){ window.scrollTo({top:0,behavior:'smooth'}); }
+  if(name==='expenses'){ window.scrollTo({top:200,behavior:'smooth'}); }
+}
+
+/* Initialize */
+function init(){
+  populateLangSelect();
+  applyTranslations();
+  renderTodos('');
+  renderExpenses('');
+  updateTotals();
+  applyTheme(state.settings.theme || 'mixed');
+}
+init();
+
+/* small: theme application (mixing mint + gdg accent lightly) */
+function applyTheme(theme){
+  // (keeps it simple; can be expanded)
+  if(theme==='mint'){ document.documentElement.style.setProperty('--accent-mint','#28c7a0'); }
+  if(theme==='gdg'){ document.documentElement.style.setProperty('--accent-mint','#1a73e8'); }
+  if(theme==='mixed'){ document.documentElement.style.setProperty('--accent-mint','#22c1a3'); }
+  if(theme==='minimal'){ document.documentElement.style.setProperty('--accent-mint','#7c9aa5'); }
+}
+
+/* Accessibility quick: keyboard shortcuts */
+document.addEventListener('keydown',(e)=>{
+  if(e.key==='/' && document.activeElement !== refs.searchInput){ e.preventDefault(); refs.searchInput.focus(); }
+});
+
+</script>
+</body>
+</html>
